@@ -1,0 +1,39 @@
+"""Message Broker"""
+from typing import Dict, List, Any, Tuple
+
+class Broker:
+    """Implementation of a PubSub Message Broker."""
+
+    def __init__(self):
+        """Initialize broker."""
+        self.canceled = False
+        self._host = "localhost"
+        self._port = 5000
+        LOGGER.info("Listen @ %s:%s", self._host, self._port)
+
+
+
+    def list_topics(self) -> List[str]:
+        """Returns a list of strings containing all topics."""
+
+    def get_topic(self, topic):
+        """Returns the currently stored value in topic."""
+
+    def put_topic(self, topic, value):
+        """Store in topic the value."""
+
+    def list_subscriptions(self, topic: str) -> List[socket.socket]:
+        """Provide list of subscribers to a given topic."""
+
+    def subscribe(self, topic: str, address: socket.socket, _format: Serializer = None):
+        """Subscribe to topic by client in address."""
+
+    def unsubscribe(self, topic, address):
+        """Unsubscribe to topic by client in address."""
+
+
+    def run(self):
+        """Run until canceled."""
+
+        while not self.canceled:
+            pass
