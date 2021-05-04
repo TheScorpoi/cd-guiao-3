@@ -6,10 +6,10 @@ from src.middleware import PickleQueue, MiddlewareType
 class Consumer:
     """Consumer implementation"""
 
-    def __init__(self, topic, queue):
+    def __init__(self, topic, queue_type=PickleQueue):
         """Initialize Queue"""
         self.topic = topic
-        self.queue = queue(f"{topic}")
+        self.queue = queue_type(f"{topic}", _type=MiddlewareType.CONSUMER)
         self.logger = get_logger(f"Consumer {topic}")
         self.received = []
 
