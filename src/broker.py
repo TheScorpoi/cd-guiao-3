@@ -9,9 +9,6 @@ class Broker:
         self.canceled = False
         self._host = "localhost"
         self._port = 5000
-        LOGGER.info("Listen @ %s:%s", self._host, self._port)
-
-
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
