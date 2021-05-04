@@ -22,9 +22,9 @@ class Broker:
         self._port = 5000
         self._sel = selectors.DefaultSelector()
         self._socket = socket.socket()
-        self._bind(self._host, self._port)
+        self._socket.bind((self._host, self._port))
         self._socket.listen(100)
-        self._sel.register(self._sock, selectors.EVENT_READ, self.accept)
+        self._sel.register(self._socket, selectors.EVENT_READ, self.accept)
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()

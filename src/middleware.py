@@ -79,7 +79,7 @@ class XMLQueue(Queue):
         
     @classmethod
     def decodeXML(cls, data):
-        return data
+        return data 
 
 class PickleQueue(Queue):
     """Queue implementation with Pickle based serialization."""
