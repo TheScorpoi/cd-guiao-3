@@ -1,6 +1,20 @@
 """Message Broker"""
+<<<<<<< HEAD
 from typing import Dict, List, Any, Tuple
 
+=======
+import enum
+from typing import Dict, List, Any, Tuple
+
+class Serializer(enum.Enum):
+    """Possible message serializers."""
+
+    JSON = 0
+    XML = 1
+    PICKLE = 2
+
+
+>>>>>>> upstream/main
 class Broker:
     """Implementation of a PubSub Message Broker."""
 
@@ -9,9 +23,12 @@ class Broker:
         self.canceled = False
         self._host = "localhost"
         self._port = 5000
+<<<<<<< HEAD
         LOGGER.info("Listen @ %s:%s", self._host, self._port)
 
 
+=======
+>>>>>>> upstream/main
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""

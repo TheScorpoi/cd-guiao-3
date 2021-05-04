@@ -79,10 +79,17 @@ q_subtopics = {
     "/msg": "/msg",
     "/weather": ["/weather/temperature", "/weather/humidity", "/weather/pressure"],
     "/weather2": [
+<<<<<<< HEAD
         "/weather/temperature/celsius",
         "/weather/temperature/fahrenheit",
         "/weather/humidity",
         "/weather/pressure",
+=======
+        "/weather2/temperature/celsius",
+        "/weather2/temperature/fahrenheit",
+        "/weather2/humidity",
+        "/weather2/pressure",
+>>>>>>> upstream/main
     ],
 }
 
