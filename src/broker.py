@@ -1,5 +1,14 @@
 """Message Broker"""
+import enum
 from typing import Dict, List, Any, Tuple
+
+class Serializer(enum.Enum):
+    """Possible message serializers."""
+
+    JSON = 0
+    XML = 1
+    PICKLE = 2
+
 
 class Broker:
     """Implementation of a PubSub Message Broker."""
