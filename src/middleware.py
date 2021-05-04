@@ -16,6 +16,7 @@ class Queue:
 
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         """Create Queue."""
+        
 
 
     def push(self, value):
