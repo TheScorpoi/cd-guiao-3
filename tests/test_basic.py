@@ -2,6 +2,7 @@
 import json
 import pickle
 import random
+import string
 import threading
 import time
 from unittest.mock import MagicMock, patch
@@ -12,6 +13,7 @@ from src.broker import Broker
 from src.clients import Consumer, Producer
 from src.middleware import JSONQueue, PickleQueue
 
+TOPIC = ''.join(random.sample(string.ascii_lowercase, 6))
 
 def gen():
     while True:
@@ -30,7 +32,7 @@ def broker():
 
 @pytest.fixture
 def consumer_JSON():
-    consumer = Consumer("/temp", JSONQueue)
+    consumer = Consumer(TOPIC, JSONQueue)
 
     thread = threading.Thread(target=consumer.run, daemon=True)
     thread.start()
@@ -39,7 +41,7 @@ def consumer_JSON():
 
 @pytest.fixture
 def consumer_Pickle():
-    consumer = Consumer("/temp", PickleQueue)
+    consumer = Consumer(TOPIC, PickleQueue)
 
     thread = threading.Thread(target=consumer.run, daemon=True)
     thread.start()
@@ -49,7 +51,7 @@ def consumer_Pickle():
 @pytest.fixture
 def producer_JSON():
 
-    producer = Producer("/temp", gen, PickleQueue)
+    producer = Producer(TOPIC, gen, PickleQueue)
 
     producer.run(1)
     return producer
@@ -57,7 +59,7 @@ def producer_JSON():
 
 def test_simple_producer_consumer(consumer_JSON):
 
-    producer = Producer("/temp", gen, JSONQueue)
+    producer = Producer(TOPIC, gen, JSONQueue)
 
     with patch("json.dumps", MagicMock(side_effect=json.dumps)) as json_dump:
         with patch("pickle.dumps", MagicMock(side_effect=pickle.dumps)) as pickle_dump:
@@ -75,7 +77,7 @@ def test_multiple_consumers(consumer_JSON, consumer_Pickle):
 
     prev = list(consumer_JSON.received)  # consumer gets previously stored element
 
-    producer = Producer("/temp", gen, PickleQueue)
+    producer = Producer(TOPIC, gen, PickleQueue)
 
     producer.run(9)  # iterate only 9 times, consumer iterates 9 + 1 historic
     time.sleep(0.1)  # wait for messages to propagate through the broker to the clients
@@ -87,6 +89,6 @@ def test_multiple_consumers(consumer_JSON, consumer_Pickle):
 def test_broker(producer_JSON, broker):
     time.sleep(0.1)  # wait for messages to propagate through the broker to the clients
 
-    assert broker.list_topics() == ["/temp"]
+    assert broker.list_topics() == [TOPIC]
 
-    assert broker.get_topic("/temp") == producer_JSON.produced[-1]
+    assert broker.get_topic(TOPIC) == producer_JSON.produced[-1]
