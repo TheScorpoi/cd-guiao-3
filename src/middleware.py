@@ -2,6 +2,7 @@
 from collections.abc import Callable
 from enum import Enum
 from queue import LifoQueue, Empty
+from typing import Any
 
 
 class MiddlewareType(Enum):
@@ -22,8 +23,8 @@ class Queue:
         """Sends data to broker. """
 
 
-    def pull(self) -> (str, tuple):
-        """Receives (topic, data) from broker.
+    def pull(self) -> (str, Any):
+        """Waits for (topic, data) from broker.
 
         Should BLOCK the consumer!"""
 
