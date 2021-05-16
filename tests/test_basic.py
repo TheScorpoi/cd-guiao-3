@@ -9,25 +9,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.broker import Broker
 from src.clients import Consumer, Producer
-from src.middleware import JSONQueue, PickleQueue
+from src.middleware import JSONQueue, PickleQueue, XMLQueue
 
-TOPIC = ''.join(random.sample(string.ascii_lowercase, 6))
+TOPIC = "".join(random.sample(string.ascii_lowercase, 6))
+
 
 def gen():
     while True:
         yield random.randint(0, 100)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def broker():
-    broker = Broker()
-
-    thread = threading.Thread(target=broker.run, daemon=True)
-    thread.start()
-    time.sleep(1)
-    return broker
 
 
 @pytest.fixture
@@ -49,6 +39,15 @@ def consumer_Pickle():
 
 
 @pytest.fixture
+def consumer_XML():
+    consumer = Consumer(TOPIC, XMLQueue)
+
+    thread = threading.Thread(target=consumer.run, daemon=True)
+    thread.start()
+    return consumer
+
+
+@pytest.fixture
 def producer_JSON():
 
     producer = Producer(TOPIC, gen, PickleQueue)
@@ -57,7 +56,7 @@ def producer_JSON():
     return producer
 
 
-def test_simple_producer_consumer(consumer_JSON):
+def test_simple_producer_consumer(consumer_JSON, broker):
 
     producer = Producer(TOPIC, gen, JSONQueue)
 
@@ -72,8 +71,10 @@ def test_simple_producer_consumer(consumer_JSON):
 
     assert consumer_JSON.received == producer.produced
 
+    assert broker.list_topics() == [TOPIC]
 
-def test_multiple_consumers(consumer_JSON, consumer_Pickle):
+
+def test_multiple_consumers(consumer_JSON, consumer_Pickle, consumer_XML, broker):
 
     prev = list(consumer_JSON.received)  # consumer gets previously stored element
 
@@ -84,6 +85,11 @@ def test_multiple_consumers(consumer_JSON, consumer_Pickle):
 
     assert consumer_JSON.received == prev + producer.produced
     assert consumer_Pickle.received == consumer_JSON.received
+    assert consumer_Pickle.received == [
+        int(v) for v in consumer_XML.received
+    ]  # XML only transfers strings, so we cast here into int for comparison
+
+    assert broker.list_topics() == [TOPIC]
 
 
 def test_broker(producer_JSON, broker):
