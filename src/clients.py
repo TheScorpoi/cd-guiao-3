@@ -1,5 +1,4 @@
 """Prototype broker clients: consumer + producer."""
-from src.log import get_logger
 from src.middleware import PickleQueue, MiddlewareType
 
 
