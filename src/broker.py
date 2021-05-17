@@ -25,6 +25,7 @@ class Broker:
         self._socket.bind((self._host, self._port))
         self._socket.listen(100)
         self._sel.register(self._socket, selectors.EVENT_READ, self.accept)
+        self.subscribedDic = {}
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()
@@ -71,9 +72,17 @@ class Broker:
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
-
+        for key in self.subscribedDic:
+            if key == topic:
+                return self.subscribedDic[key]
+        
     def subscribe(self, topic: str, address: socket.socket, _format: Serializer = None):
         """Subscribe to topic by client in address."""
+        if(topic not in self.subscribedDic):
+            self.subscribedDic[topic] = [(address, _format)]
+        else:
+            subscribersList = self.subscribedDic[topic]
+            self.subscribedDic[topic].append((address , _format))
 
     def unsubscribe(self, topic, address):
         """Unsubscribe to topic by client in address."""
