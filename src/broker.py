@@ -26,6 +26,7 @@ class Broker:
         self._socket.listen(100)
         self._sel.register(self._socket, selectors.EVENT_READ, self.accept)
         self.subscribedDic = {}
+        self.topicsDic = {}
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()
@@ -63,12 +64,23 @@ class Broker:
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
+        list_topics = []
+        for i in self.topicsDic:
+            list_topics.append(i)
+        return list_topics
 
     def get_topic(self, topic):
         """Returns the currently stored value in topic."""
-
+        if topic in self.topicsDic:
+            return self.topicsDic[topic]
+        else:
+            return None
+            
     def put_topic(self, topic, value):
         """Store in topic the value."""
+        if topic not in self.topicsDic:
+            self.topicsDic[topic] = value
+            
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
@@ -81,11 +93,17 @@ class Broker:
         if(topic not in self.subscribedDic):
             self.subscribedDic[topic] = [(address, _format)]
         else:
-            subscribersList = self.subscribedDic[topic]
             self.subscribedDic[topic].append((address , _format))
 
     def unsubscribe(self, topic, address):
         """Unsubscribe to topic by client in address."""
+        for key, value in self.subscribedDic.items():
+            if key == topic:
+                for i in value:
+                    if i[0] == address:
+                        self.subscribedDic[topic].remove(i)
+                        break
+                   
 
 
     def run(self):

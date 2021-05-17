@@ -9,7 +9,6 @@ class Consumer:
         """Initialize Queue"""
         self.topic = topic
         self.queue = queue_type(f"{topic}", _type=MiddlewareType.CONSUMER)
-        self.logger = get_logger(f"Consumer {topic}")
         self.received = []
 
     def run(self, events=10):
@@ -25,7 +24,6 @@ class Producer:
 
     def __init__(self, topic, value_generator, queue_type=PickleQueue):
         """Initialize Queue."""
-        self.logger = get_logger(f"Producer {topic}")
 
         if isinstance(topic, list):
             self.queue = [
