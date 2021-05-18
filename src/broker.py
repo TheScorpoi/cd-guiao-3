@@ -66,8 +66,10 @@ class Broker:
                     #ler com a funcao de publish
                 elif method == 'SUBSCRIBE':
                     #ler com a funcao de subscribe
-                elif method == 'CANCEL_SUB':
+                    self.subscribe(topic, conn, self._socket, Serielizer + ".")
+                elif method == 'CANCEL':
                     #ler com a funcao de cancelar a sub
+                    self.unsubscribe(topic, conn)
                 elif method == 'LIST':    
                     #ler com a funcao de retornar todas as coisas da lista
                     self.list_topics()

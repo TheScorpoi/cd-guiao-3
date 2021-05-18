@@ -30,7 +30,6 @@ class Queue:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
-        #self.AckMessage(self.protocol, self._type, self._topic)
                 
     def push(self, value):
         """Sends data to broker. """
