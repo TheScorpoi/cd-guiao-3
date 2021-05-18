@@ -31,9 +31,9 @@ class Queue:
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
         #self.AckMessage(self.protocol, self._type, self._topic)
-        if self.type==MiddlewareType.CONSUMER:
+        #if self.type==MiddlewareType.CONSUMER:
             #subscribe to the topic passed as a command line argument, for example : --type weather or --type /
-            self.subscribe(self.topic)
+        #self.subscribe(self.topic)
                 
     def push(self, value):
         """Sends data to broker. """
