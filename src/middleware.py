@@ -56,8 +56,8 @@ class Queue:
         self.send_message('LIST', "")
         data = self.socket.recv(1000)
         if data:
-            method, topic, message = self.decode(data)
-            print(topic, message)
+            for topic in data.decode('utf-8'):
+                print(topic)
 
     def cancel(self):
         """Cancel subscription."""
