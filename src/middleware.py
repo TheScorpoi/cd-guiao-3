@@ -30,6 +30,10 @@ class Queue:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
+        #self.AckMessage(self.protocol, self._type, self._topic)
+        if self.type==MiddlewareType.CONSUMER:
+            #subscribe to the topic passed as a command line argument, for example : --type weather or --type /
+            self.subscribe(self.topic)
                 
     def push(self, value):
         """Sends data to broker. """
@@ -44,7 +48,8 @@ class Queue:
         if data:
             method, topic, message = self.decode(data)
             return topic, message
-        
+        else:
+            return topic, "No data"
 
     def send_message(self, method, data):
         data = self.encode(data, self._topic, method)
@@ -58,9 +63,16 @@ class Queue:
             for topic in data.decode('utf-8'):
                 print(topic)
 
+            # method, topic, message = self.decode(data)
+            # return topic, message
+            #! OU ASSIM???
+
     def cancel(self):
         """Cancel subscription."""
         self.send_message('CANCEL', "")
+
+    def subscribe(self, topic):
+        self.send_message("SUBSCRIBE" , topic)
     
 
 class JSONQueue(Queue):

@@ -28,6 +28,7 @@ class Broker:
         self.subscribedDic = {}
         self.topicsDic = {}
         self.userDic = {}
+        
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()
@@ -37,11 +38,11 @@ class Broker:
         
         if data:
             if data.decode('utf-8') == 'JSONQueue':
-                self.userDic[conn] = 'JSON'
+                self.userDic[conn] = Serializer.JSON
             elif data.decode('utf-8') == 'XMLQueue':
-                self.userDic[conn] = 'XML'
+                self.userDic[conn] = Serializer.XML
             elif data.decode('utf-8') == 'PICKLEQueue':
-                self.userDic[conn] = 'PICKLE'
+                self.userDic[conn] = Serializer.PICKLE
         else:
             print('closing ', conn)
             self._sel.unregister(conn)
@@ -54,11 +55,11 @@ class Broker:
         if data:
             if conn in self.userDic:
                 #first check how to decode the message
-                if self.userDic[conn] == 'JSON' and data.decode('utf-8') == 'JSONQueue':
+                if self.userDic[conn] == Serializer.JSON:
                     method,topic,msg=self.decode(data)
-                elif self.userDic[conn] == 'PICKLE' and data.decode('utf-8') == 'PICKLEQueue':
+                elif self.userDic[conn] == Serializer.PICKLE:
                     method,topic,msg=self.decode(data)
-                elif self.userDic[conn] == 'XML' and data.decode('utf-8') == 'XMLQueue':
+                elif self.userDic[conn] == Serializer.XML:
                     method,topic,msg=self.decode(data)
                 #check the method associated with the message 
                 '''
@@ -92,7 +93,9 @@ class Broker:
     def put_topic(self, topic, value):
         """Store in topic the value."""
         if topic not in self.topicsDic:
-            self.topicsDic[topic] = value            
+            self.topicsDic[topic] = value     
+
+    #def putMSG_on_topic():       
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
