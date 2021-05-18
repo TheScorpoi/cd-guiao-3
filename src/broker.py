@@ -2,7 +2,10 @@
 import enum
 from typing import Dict, List, Any, Tuple
 import selectors
+import xml.etree.ElementTree as element_tree
 import socket
+import json
+import pickle
 
 class Serializer(enum.Enum):
     """Possible message serializers."""
@@ -118,6 +121,48 @@ class Broker:
                     if i[0] == address:
                         self.subscribedDic[topic].remove(i)
                         break
+
+    def encodeJSON(self, message, topic, method):
+        protocol_JSON = {"method": method, 'topic': topic, "message": message}
+        protocol_JSON = json.dumps(protocol_JSON)
+        protocol_JSON = protocol_JSON.encode('utf-8')
+        return protocol_JSON
+        
+    @classmethod
+    def decodeJSON(self, data):
+        data = data.decode('utf-8')
+        data = json.loads(data)
+        method = data['method']
+        topic = data['topic']
+        message = data['message']
+        return method, topic, message
+
+    def encodeXML(self, message, topic, method):
+        protocol_XML = {"method": method, 'topic': topic, "message": message}
+        protocol_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><message>%(message)s</message></data>' % protocol_XML)
+        protocol_XML = protocol_XML.encode('utf-8')
+        return protocol_XML
+        
+    def decodeXML(self, data):
+        data = data.decode('utf-8')
+        data = element_tree.fromstring(data)
+        message_xml = data.attrib
+        method = message_xml['method']
+        topic = message_xml['topic']
+        message = message_xml.find('message').txt
+        return method, topic, message
+
+    def encodePICKLE(self, message, topic, method):
+        protocol_PICKLE = {"method": method, 'topic': topic, "message": message}
+        protocol_PICKLE = pickle.dumps(protocol_PICKLE)
+        return protocol_PICKLE
+
+    def decodePICKLE(self, data):
+        self.data = pickle.loads(data)
+        method = data['method']
+        topic = data['topic']
+        message = data['message']
+        return method, topic, message
                    
     def run(self):
         """Run until canceled."""
