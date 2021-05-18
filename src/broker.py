@@ -27,40 +27,30 @@ class Broker:
         self._sel.register(self._socket, selectors.EVENT_READ, self.accept)
         self.subscribedDic = {}
         self.topicsDic = {}
+        self.userDic = {}
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()
         print('accepted', conn, 'from', addr)
-        conn.setblocking(False)
+        
+        data = conn.recv(1000)
+        
+        if data:
+            if data.decode('utf-8') == 'JSONQueue':
+                self.userDic[conn] = 'JSON'
+            elif data.decode('utf-8') == 'XMLQueue':
+                self.userDic[conn] = 'XML'
+            elif data.decode('utf-8') == 'PICKLEQueue':
+                self.userDic[conn] = 'PICKLE'
+        else:
+            print('closing ', conn)
+            self._sel.unregister(conn)
+            conn.close()
         self._sel.register(conn, selectors.EVENT_READ, self.read) 
-        self._connKeyDic[conn] = [None] 
+        
         
     def read(self,conn, mask):
-        try:
-            data = CDProto.recv_msg(conn) 
-            print('echoing', str(data), 'to', conn)
-            
-            if (data._command == "join" ):
-                channelList = self._connKeyDic[conn]  
-                
-                if data._channel not in channelList:
-                    channelList.append(data._channel)
-                
-                    if(None in channelList):   
-                        channelList.remove(None)
-                    
-                    self._connKeyDic[conn] = channelList    
-
-            if (data._command == "message"):    
-                for k,v in self._connKeyDic.items():    
-                    for channel in v:
-                        if data._channel == channel:    
-                            CDProto.send_msg(k, data)   
-        except ConnectionError:
-            print('closing', conn)
-            self._sel.unregister(conn) 
-            self._connKeyDic.pop(conn)  
-            conn.close()
+        
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
@@ -79,8 +69,7 @@ class Broker:
     def put_topic(self, topic, value):
         """Store in topic the value."""
         if topic not in self.topicsDic:
-            self.topicsDic[topic] = value
-            
+            self.topicsDic[topic] = value            
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
@@ -104,10 +93,11 @@ class Broker:
                         self.subscribedDic[topic].remove(i)
                         break
                    
-
-
     def run(self):
         """Run until canceled."""
 
-        while not self.canceled:
-            pass
+        while True:
+            events = self._sel.select()
+            for key, mask in events:
+                callback = key.data
+                callback(key.fileobj, mask)

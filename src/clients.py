@@ -40,6 +40,5 @@ class Producer:
         for _ in range(events):
             for queue, value in zip(self.queue, self.gen()):
                 queue.push(value)
-                self.logger.info("%s: %s", queue.topic, value)
 
                 self.produced.append(value)

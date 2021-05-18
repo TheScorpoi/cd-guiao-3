@@ -24,19 +24,17 @@ class Queue:
         """Create Queue."""
         self._topic = topic
         self._type = _type
-        self.queue = queue._type(f"{topic}", self._type)
         self.host = 'localhost'
         self.port = 5000
-        self.protocol = protocol
         self.selector = selectors.DefaultSelector()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.HOST, self.PORT))
+        self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
-        self.AckMessage(self.protocol, self._type, self._topic)
+        #self.AckMessage(self.protocol, self._type, self._topic)
                 
     def push(self, value):
         """Sends data to broker. """
-        self.send_message('PUB', value)
+        self.send_message('PUBLISH', value)
 
 
     def pull(self) -> (str, Any):
@@ -50,7 +48,7 @@ class Queue:
         
 
     def send_message(self, method, data):
-        data = self.encode(self.topic, data, method)
+        data = self.encode(data, self._topic, method)
         self.socket.send(data)
         
     def AckMessage(self, protocol, Midtype, topic):
@@ -82,14 +80,14 @@ class JSONQueue(Queue):
         super().__init__(topic, _type=_type)
     
     @classmethod
-    def encodeJSON(cls, message, topic, method):
+    def encode(cls, message, topic, method):
         protocol_JSON = {"method": method, 'topic': topic, "message": message}
         protocol_JSON = json.dumps(protocol_JSON)
         protocol_JSON = protocol_JSON.encode('utf-8')
         return protocol_JSON
         
     @classmethod
-    def decodeJSON(cls, data):
+    def decode(cls, data):
         data = data.decode('utf-8')
         data = json.loads(data)
         method = data['method']
@@ -104,14 +102,14 @@ class XMLQueue(Queue):
         super().__init__(topic, _type=_type)
         
     @classmethod
-    def encodeXML(cls, message, topic, method):
+    def encode(cls, message, topic, method):
         protocol_XML = {"method": method, 'topic': topic, "message": message}
         protocol_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><message>%(message)s</message></data>' % protocol_XML)
         protocol_XML = protocol_XML.encode('utf-8')
         return protocol_XML
         
     @classmethod
-    def decodeXML(cls, data):
+    def decode(cls, data):
         data = data.decode('utf-8')
         data = element_tree.fromstring(data)
         message_xml = data.attrib
@@ -127,13 +125,13 @@ class PickleQueue(Queue):
         super().__init__(topic, _type=_type)
     
     @classmethod
-    def encodePICKLE(cls, message, topic, method):
+    def encode(cls, message, topic, method):
         protocol_PICKLE = {"method": method, 'topic': topic, "message": message}
         protocol_PICKLE = pickle.dumps(protocol_PICKLE)
         return protocol_PICKLE
 
     @classmethod
-    def decodePICKLE(cls, data):
+    def decode(cls, data):
         self.data = pickle.loads(data)
         method = data['method']
         topic = data['topic']
