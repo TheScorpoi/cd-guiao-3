@@ -30,7 +30,11 @@ class Queue:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
-        #self.AckMessage(self.protocol, self._type, self._topic)
+        #Obtain the name of the queue class
+        serial = str(self.__class__.__name__).encode('utf-8')
+        self.socket.send(serial)
+        
+        #If consumer, subscribe to a channel
         if self.type==MiddlewareType.CONSUMER:
             #subscribe to the topic passed as a command line argument, for example : --type weather or --type /
             self.subscribe(self.topic)
@@ -73,6 +77,9 @@ class Queue:
 
     def subscribe(self, topic):
         self.send_message("SUBSCRIBE" , topic)
+
+    def ackENCODE(self, serialization , midTYPE, topic):
+        serialization = str(serialization)
     
 
 class JSONQueue(Queue):
