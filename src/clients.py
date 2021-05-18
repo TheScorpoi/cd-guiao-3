@@ -15,7 +15,6 @@ class Consumer:
         """Consume at most <events> events."""
         for _ in range(events):
             topic, data = self.queue.pull()
-            self.logger.info("%s: %s", topic, data)
             self.received.append(data)
 
 

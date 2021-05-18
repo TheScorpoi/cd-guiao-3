@@ -50,7 +50,28 @@ class Broker:
         
         
     def read(self,conn, mask):
-        
+        data=conn.recv(1000)
+        if data:
+            if conn in self.userDic:
+                #first check how to decode the message
+                if self.userDic[conn] == 'JSON' and data.decode('utf-8') == 'JSONQueue':
+                    method,topic,msg=self.decode(data)
+                elif self.userDic[conn] == 'PICKLE' and data.decode('utf-8') == 'PICKLEQueue':
+                    method,topic,msg=self.decode(data)
+                elif self.userDic[conn] == 'XML' and data.decode('utf-8') == 'XMLQueue':
+                    method,topic,msg=self.decode(data)
+                #check the method associated with the message 
+                '''
+                if method == 'PUBLISH':
+                    #ler com a funcao de publish
+                elif method == 'SUBSCRIBE':
+                    #ler com a funcao de subscribe
+                elif method == 'CANCEL_SUB':
+                    #ler com a funcao de cancelar a sub
+                elif method == 'LIST':    
+                    #ler com a funcao de retornar todas as coisas da lista
+                    self.list_topics()
+                '''     
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""

@@ -51,15 +51,6 @@ class Queue:
         data = self.encode(data, self._topic, method)
         self.socket.send(data)
         
-    def AckMessage(self, protocol, Midtype, topic):
-        prot = str(protocol)
-        Mtype = str(Midtype)
-        jsonText = {'PROTOCOL' : prot, 'TYPE' : Mtype, 'TOPIC' : topic}
-        jsonText = json.dumps(jsonText)
-        jsonText = jsonText.encode('utf-8')
-        self.socket.send(jsonText)
-        
-
     def list_topics(self, callback: Callable):
         """Lists all topics available in the broker."""
         self.send_message('LIST', "")
