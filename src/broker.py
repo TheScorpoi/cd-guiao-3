@@ -31,6 +31,8 @@ class Broker:
         self.subscribedDic = {}
         self.topicsDic = {}
         self.userDic = {}
+        self.topicsDic["users"] = []
+        self.topicsDic["messages"] = []
         
 
     def accept(self, sock, mask):
@@ -59,25 +61,36 @@ class Broker:
             if conn in self.userDic:
                 #first check how to decode the message
                 if self.userDic[conn] == Serializer.JSON:
-                    method,topic,msg=self.decode(data)
+                    method,topic,msg=self.decodeJSON(data)
                 elif self.userDic[conn] == Serializer.PICKLE:
-                    method,topic,msg=self.decode(data)
+                    method,topic,msg=self.decodePICKLE(data)
                 elif self.userDic[conn] == Serializer.XML:
-                    method,topic,msg=self.decode(data)
+                    method,topic,msg=self.decodeXML(data)
                 #check the method associated with the message 
-                '''
+                
                 if method == 'PUBLISH':
                     #ler com a funcao de publish
+                    pass
                 elif method == 'SUBSCRIBE':
                     #ler com a funcao de subscribe
-                    self.subscribe(topic, conn, self._socket, Serielizer + ".")
+                    #self.subscribe(topic, conn, self._socket, Serielizer + ".")
+                    pass
                 elif method == 'CANCEL':
                     #ler com a funcao de cancelar a sub
-                    self.unsubscribe(topic, conn)
+                    #self.unsubscribe(topic, conn)
+                    pass
                 elif method == 'LIST':    
                     #ler com a funcao de retornar todas as coisas da lista
-                    self.list_topics()
-                '''     
+                    #self.list_topics()
+                    pass
+        else:
+            print('closing' , conn)
+            self.unsubscribe(topic, conn)
+            self._socket.unregister(conn)
+            conn.close()
+
+    #def subscribe(self, conn, method, topic):
+    #    pass
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
@@ -97,8 +110,6 @@ class Broker:
         """Store in topic the value."""
         if topic not in self.topicsDic:
             self.topicsDic[topic] = value     
-
-    #def putMSG_on_topic():       
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""

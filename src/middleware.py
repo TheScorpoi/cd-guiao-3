@@ -73,7 +73,8 @@ class Queue:
 
     def subscribe(self, topic):
         self.send_message("SUBSCRIBE" , topic)
-    
+
+
 
 class JSONQueue(Queue):
     """Queue implementation with JSON based serialization."""
