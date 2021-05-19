@@ -7,6 +7,7 @@ import socket
 import json
 import pickle
 
+
 class Serializer(enum.Enum):
     """Possible message serializers."""
 
@@ -31,71 +32,72 @@ class Broker:
         self.subscribedDic = {}
         self.topicsDic = {}
         self.userDic = {}
-        self.topicsDic["users"] = []
-        self.topicsDic["messages"] = []
-        
+        self.topicMsgDic = {}
 
     def accept(self, sock, mask):
         conn, addr = sock.accept()
         print('accepted', conn, 'from', addr)
-        
+
         data = conn.recv(1000)
-        
+        data = pickle.loads(data.decode('utf-8'))
+
         if data:
-            if data.decode('utf-8') == 'JSONQueue':
+            if data['Serializer'] == 'JSONQueue':
                 self.userDic[conn] = Serializer.JSON
-            elif data.decode('utf-8') == 'XMLQueue':
+            elif data['Serializer'] == 'XMLQueue':
                 self.userDic[conn] = Serializer.XML
-            elif data.decode('utf-8') == 'PICKLEQueue':
+            elif data['Serializer'] == 'PickleQueue':
                 self.userDic[conn] = Serializer.PICKLE
         else:
             print('closing ', conn)
             self._sel.unregister(conn)
             conn.close()
-        self._sel.register(conn, selectors.EVENT_READ, self.read) 
-        
-        
-    def read(self,conn, mask):
-        data=conn.recv(1000)
+        self._sel.register(conn, selectors.EVENT_READ, self.read)
+
+    def read(self, conn, mask):
+        data = conn.recv(1000)
         if data:
             if conn in self.userDic:
-                #first check how to decode the message
+                # first check how to decode the message
                 if self.userDic[conn] == Serializer.JSON:
-                    method,topic,msg=self.decodeJSON(data)
+                    method, topic, msg = self.decodeJSON(data)
                 elif self.userDic[conn] == Serializer.PICKLE:
-                    method,topic,msg=self.decodePICKLE(data)
+                    method, topic, msg = self.decodePICKLE(data)
                 elif self.userDic[conn] == Serializer.XML:
-                    method,topic,msg=self.decodeXML(data)
-                #check the method associated with the message 
-                
+                    method, topic, msg = self.decodeXML(data)
+
                 if method == 'PUBLISH':
-                    #ler com a funcao de publish
-                    pass
+                    # ler com a funcao de publish
+                    self.put_topic(topic, msg)
+
                 elif method == 'SUBSCRIBE':
-                    #ler com a funcao de subscribe
-                    #self.subscribe(topic, conn, self._socket, Serielizer + ".")
-                    pass
+                    # ler com a funcao de subscribe
+                    self.subscribe(topic, conn, self.userDic[conn])
+
+                    if topic in self.topicsDic:
+                        self.send_msg(conn, 'Ultima_menssage', topic, self.topicsDic[topic])
+                        #message no ultimo agr
+
                 elif method == 'CANCEL':
-                    #ler com a funcao de cancelar a sub
-                    #self.unsubscribe(topic, conn)
-                    pass
-                elif method == 'LIST':    
-                    #ler com a funcao de retornar todas as coisas da lista
-                    #self.list_topics()
-                    pass
+                    # ler com a funcao de cancelar a sub
+                    self.unsubscribe(topic, conn)
+
+                elif method == 'LIST':
+                    # ler com a funcao de retornar todas as coisas da lista
+                    self.send_msg(conn, 'LISTENING', topic, self.list_topics())
         else:
-            print('closing' , conn)
+            print('closing', conn)
             self.unsubscribe(topic, conn)
             self._socket.unregister(conn)
             conn.close()
 
-    #def subscribe(self, conn, method, topic):
+    # def subscribe(self, conn, method, topic):
     #    pass
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
         list_topics = []
-        for i in self.topicsDic:
+        for i in self.topicMsgDic :
             list_topics.append(i)
         return list_topics
 
@@ -105,24 +107,53 @@ class Broker:
             return self.topicsDic[topic]
         else:
             return None
-            
+
     def put_topic(self, topic, value):
         """Store in topic the value."""
-        if topic not in self.topicsDic:
-            self.topicsDic[topic] = value     
+        #if topic not in self.topicsDic:
+        self.topicsDic[topic] = value
+        
+        if topic not in self.topicMsgDic.keys():
+            for topico in self.topicMsgDic.keys():
+                if topico in topic:
+                    self.topicMsgDic[topico].append(topic)
+
+            self.topicMsgDic[topic] = []
+            for topico in self.topicMsgDic.keys():
+                if topic in topico:
+                    self.topicMsgDic[topic].append(topico)
+
+        for i in self.topicMsgDic[topic]:
+            if i in self.userDic.keys():
+                if self.userDic[i] != []: # TODO: alterei esta parte
+                    address = self.userDic[i][0][0]
+                    self.send_msg(address, 'MESSAGE', topic, value)
+                    
+
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
-        for key in self.subscribedDic:
+        for key in self.userDic:
             if key == topic:
-                return self.subscribedDic[key]
-        
+                return self.userDic[key]
+
     def subscribe(self, topic: str, address: socket.socket, _format: Serializer = None):
         """Subscribe to topic by client in address."""
         if(topic not in self.subscribedDic):
-            self.subscribedDic[topic] = [(address, _format)]
+            self.userDic[topic] = [(address, _format)]
         else:
-            self.subscribedDic[topic].append((address , _format))
+            self.userDic[topic].append((address, _format))
+            
+        if topic not in self.topicMsgDic.keys():
+            for topico in self.topicMsgDic.keys():
+                if topico in topic:
+                    self.topicMsgDic[topico].append(topic)
+
+            self.topicMsgDic[topic] = []
+            for topico in self.topicMsgDic.keys():
+                if topic in topico:
+                    self.topicMsgDic[topic].append(topico)
+            
 
     def unsubscribe(self, topic, address):
         """Unsubscribe to topic by client in address."""
@@ -133,13 +164,23 @@ class Broker:
                         self.subscribedDic[topic].remove(i)
                         break
 
+    def send_msg(self, conn, method, topic, msg):
+        
+        if self.userDic[conn] == Serializer.JSON:
+            conn.send(self.encodeJSON(msg, topic, method))
+        elif self.userDic[conn] == Serializer.PICKLE:
+            conn.send(self.encodePICKLE(msg, topic, method))
+        elif self.userDic[conn] == Serializer.XML:
+            conn.send(self.encodeXML(msg, topic, method))
+        
+        
+
     def encodeJSON(self, message, topic, method):
         protocol_JSON = {"method": method, 'topic': topic, "message": message}
         protocol_JSON = json.dumps(protocol_JSON)
         protocol_JSON = protocol_JSON.encode('utf-8')
         return protocol_JSON
-        
-    @classmethod
+
     def decodeJSON(self, data):
         data = data.decode('utf-8')
         data = json.loads(data)
@@ -150,10 +191,11 @@ class Broker:
 
     def encodeXML(self, message, topic, method):
         protocol_XML = {"method": method, 'topic': topic, "message": message}
-        protocol_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><message>%(message)s</message></data>' % protocol_XML)
+        protocol_XML = (
+            '<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><message>%(message)s</message></data>' % protocol_XML)
         protocol_XML = protocol_XML.encode('utf-8')
         return protocol_XML
-        
+
     def decodeXML(self, data):
         data = data.decode('utf-8')
         data = element_tree.fromstring(data)
@@ -164,7 +206,8 @@ class Broker:
         return method, topic, message
 
     def encodePICKLE(self, message, topic, method):
-        protocol_PICKLE = {"method": method, 'topic': topic, "message": message}
+        protocol_PICKLE = {"method": method,
+                           'topic': topic, "message": message}
         protocol_PICKLE = pickle.dumps(protocol_PICKLE)
         return protocol_PICKLE
 
@@ -174,11 +217,11 @@ class Broker:
         topic = data['topic']
         message = data['message']
         return method, topic, message
-                   
+
     def run(self):
         """Run until canceled."""
 
-        while True:
+        while not self.canceled:
             events = self._sel.select()
             for key, mask in events:
                 callback = key.data
