@@ -31,7 +31,8 @@ class Queue:
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
         
-        ack_msg = pickle.dumps({"ACK_MSG": "", "Serializer": str(self.__class__.__name__)})
+        ack_msg = json.dumps({"method": "ACK_MSG", "Serializer": str(self.__class__.__name__)}).encode('utf-8')
+        
         self.socket.send(ack_msg)
         
         if (self._type == MiddlewareType.CONSUMER):
@@ -50,8 +51,8 @@ class Queue:
         if data:
             method, topic, message = self.decode(data)
             return topic, message
-        else:
-            return topic, "No data"
+        #else:
+            #return topic, "No data"
 
     def send_message(self, method, data):
         data = self.encode(data, self._topic, method)
@@ -59,18 +60,14 @@ class Queue:
         
     def list_topics(self, callback: Callable):
         """Lists all topics available in the broker."""
-        self.send_message('LIST', "")
-        data = self.socket.recv(1000)
-        if data:
-            for topic in data.decode('utf-8'):
-                print(topic)
-
+        self.send_message('LIST', '')
+        
     def cancel(self):
         """Cancel subscription."""
-        self.send_message('CANCEL', "")
+        self.send_message('CANCEL', self._topic)
 
     def subscribe(self, topic):
-        self.send_message("SUBSCRIBE" , topic)
+        self.send_message('SUBSCRIBE' , topic)
 
 class JSONQueue(Queue):
     """Queue implementation with JSON based serialization."""
