@@ -25,7 +25,7 @@ class Queue:
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         """Create Queue."""
         self.host = 'localhost'
-        self.port = 5001   
+        self.port = 5000  
         self.topic = topic
         self._type = _type
         self.selector = selectors.DefaultSelector()
