@@ -8,7 +8,7 @@ import socket
 import selectors
 import json
 import pickle
-import xml.etree.ElementTree as element_tree
+import xml.etree.ElementTree as XM
 import xml
 
 
@@ -27,13 +27,13 @@ class Queue:
         self.topic = topic
         self._type = _type
         self.host = 'localhost'
-        self.port = 5003 
+        self.port = 5001    
         self.selector = selectors.DefaultSelector()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
         ack_msg = json.dumps({"method": "ACK", "Serializer": str(self.__class__.__name__)}).encode('utf-8')
-        header = len(ack_msg).to_bytes(2, "big")   
+        header = len(ack_msg).to_bytes(3, "little")   
         self.socket.send(header + ack_msg)
 
         if self._type==MiddlewareType.CONSUMER:
@@ -52,8 +52,8 @@ class Queue:
         """Waits for (topic, data) from broker.
         Should BLOCK the consumer!"""
         
-        header = self.socket.recv(2)                        
-        header = int.from_bytes(header, "big")  
+        header = self.socket.recv(3)                        
+        header = int.from_bytes(header, "little")  
         data = self.socket.recv(header)
         
         if data:           
@@ -71,7 +71,7 @@ class Queue:
     def send_message(self, method, message):
         """Sends through a connection a Message object."""
         data = self.encode(method, self.topic, message) 
-        header = len(data).to_bytes(2, "big")  
+        header = len(data).to_bytes(3, "little")  
         self.socket.send(header + data)       
 
 class JSONQueue(Queue):
