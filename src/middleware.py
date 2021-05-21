@@ -24,17 +24,17 @@ class Queue:
 
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         """Create Queue."""
+        self.host = 'localhost'
+        self.port = 5001   
         self.topic = topic
         self._type = _type
-        self.host = 'localhost'
-        self.port = 5001    
         self.selector = selectors.DefaultSelector()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
-        self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
         ack_msg = json.dumps({"method": "ACK", "Serializer": str(self.__class__.__name__)}).encode('utf-8')
         header = len(ack_msg).to_bytes(3, "little")   
         self.socket.send(header + ack_msg)
+        self.selector.register(self.socket, selectors.EVENT_READ, self.pull)
 
         if self._type==MiddlewareType.CONSUMER:
             self.subscribe(topic)
@@ -76,60 +76,65 @@ class Queue:
 
 class JSONQueue(Queue):
     """Queue implementation with JSON based serialization."""
+    
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):  
         super().__init__(topic, _type)
-        
-    def decode(self, data):
-        data=data.decode('utf-8')
-        msg=json.loads(data)
-        op=msg['method']
-        topic=msg['topic']
-        msg=msg['msg']
-        return op,topic,msg  
     
-    def encode(self, method, topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=json.dumps(init)
-        init=init.encode('utf-8')
-        return init   
-
-
+    def encode(self, method, topic, message):
+        msg_JSON = {'method': method, 'topic': topic, 'msg': message}
+        msg_JSON = json.dumps(msg_JSON)
+        msg_JSON = msg_JSON.encode('utf-8')
+        
+        return msg_JSON   
+     
+    def decode(self, data):
+        data = data.decode('utf-8')
+        message = json.loads(data)
+        method = message['method']
+        topic = message['topic']
+        message = message['msg']
+        
+        return method, topic, message  
 
 class XMLQueue(Queue):
     """Queue implementation with XML based serialization."""
+    
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         super().__init__(topic, _type)
         
-    def encode(self,method,topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><msg>%(msg)s</msg></data>' % init)
-        init=init.encode('utf-8')
-        return init
+    def encode(self,method, topic, msg):
+        msg_XML = {'method': method, 'topic': topic, 'msg': msg}
+        msg_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><msg>%(msg)s</msg></data>' % msg_XML)
+        msg_XML = msg_XML.encode('utf-8')
+        
+        return msg_XML
     
-    def decode(self,data):
-        init=data.decode('utf-8')
-        init=element_tree.fromstring(init)
-        init2=init.attrib
-        op=init2['method']
-        topic=init2['topic']
-        msg=init.find('msg').text
-        return op,topic,msg
+    def decode(self, data):
+        data = data.decode('utf-8')
+        data = element_tree.fromstring(data)
+        data_aux = data.attrib
+        method = data_aux['method']
+        topic= data_aux['topic']
+        message = data.find('msg').text
 
+        return method, topic, message
 
 class PickleQueue(Queue):
     """Queue implementation with Pickle based serialization."""
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         super().__init__(topic, _type)
         
-    def encode(self,method, topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=pickle.dumps(init)
-        return init
+    def encode(self,method, topic, message):
+        msg_PICKLE = {'method': method, 'topic': topic, 'msg': message}
+        msg_PICKLE = pickle.dumps(msg_PICKLE)
     
+        return msg_PICKLE
+
     def decode(self,data):
-        msg=pickle.loads(data)
-        op=msg['method']
-        topic=msg['topic']
-        msg=msg['msg']
-        return op,topic,msg
+        data = pickle.loads(data)
+        method = data['method']
+        topic = data['topic']
+        message = data['msg']
+        
+        return method, topic, message
 

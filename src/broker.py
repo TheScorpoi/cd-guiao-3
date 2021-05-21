@@ -36,10 +36,8 @@ class Broker:
         self.subtopics_of_topicDic = {} #key: topic / value: subtopic
         
     def accept(self, sock, mask):
-        """ """
         conn, addr = sock.accept()                                  
         print('accepted', conn, 'from', addr)
-        conn.setblocking(False)
         self.selector.register(conn, selectors.EVENT_READ, self.read)
 
         header_aux = conn.recv(3)                        
@@ -179,49 +177,55 @@ class Broker:
 
     def decodeJSON(self, data):
         data = data.decode('utf-8')
-        msg = json.loads(data)
-        op = msg['method']
-        topic = msg['topic']
-        msg=msg['msg']
-        return op,topic,msg 
+        message = json.loads(data)
+        method = message['method']
+        topic = message['topic']
+        message = message['msg']
+        
+        return method, topic, message 
 
-    def encodeJSON(self, method, topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=json.dumps(init)
-        init=init.encode('utf-8')
-        return init
+    def encodeJSON(self, method, topic, message):
+        msg_JSON = {'method': method, 'topic': topic, 'msg': message}
+        msg_JSON = json.dumps(msg_JSON)
+        msg_JSON = msg_JSON.encode('utf-8')
+        
+        return msg_JSON   
 
-    def encodeXML(self,method,topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><msg>%(msg)s</msg></data>' % init)
-        init=init.encode('utf-8')
-        return init
+    def encodeXML(self, method, topic, msg):
+        msg_XML = {'method': method, 'topic': topic, 'msg': msg}
+        msg_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><msg>%(msg)s</msg></data>' % msg_XML)
+        msg_XML = msg_XML.encode('utf-8')
+        
+        return msg_XML
 
-    def decodeXML(self,data):
-        init=data.decode('utf-8')
-        init=element_tree.fromstring(init)
-        init2=init.attrib
-        op=init2['method']
-        topic=init2['topic']
-        msg=init.find('msg').text
-        return op,topic,msg
+    def decodeXML(self, data):
+        data = data.decode('utf-8')
+        data = element_tree.fromstring(data)
+        data_aux = data.attrib
+        method = data_aux['method']
+        topic= data_aux['topic']
+        message = data.find('msg').text
 
-    def encodePICKLE(self,method, topic,msg):
-        init={'method':method,'topic':topic,'msg':msg}
-        init=pickle.dumps(init)
-        return init
+        return method, topic, message
 
-    def decodePICKLE(self,data):
-        msg=pickle.loads(data)
-        op=msg['method']
-        topic=msg['topic']
-        msg=msg['msg']
-        return op,topic,msg
+    def encodePICKLE(self,method, topic ,message):
+        msg_PICKLE = {'method': method, 'topic': topic, 'msg': message}
+        msg_PICKLE = pickle.dumps(msg_PICKLE)
+    
+        return msg_PICKLE
+
+    def decodePICKLE(self, data):
+        data = pickle.loads(data)
+        method = data['method']
+        topic = data['topic']
+        message = data['msg']
+        
+        return method, topic, message
 
     def run(self):
         """Run until canceled."""
         while not self.canceled:
-            events = self.selectorect()
+            events = self.selector.select()
             for key, mask in events:
                 callback = key.data
                 callback(key.fileobj, mask)
