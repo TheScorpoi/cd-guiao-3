@@ -31,6 +31,7 @@ class Broker:
         self.sel = selectors.DefaultSelector()
         self.sel.register(self.socket, selectors.EVENT_READ, self.accept)
         #!init dictonaries fazer comentarios sobre key/value em cada um
+        
         self.serializer_of_userDic = {}
         self.topics_by_userDic = {}  
         self.messages_of_topicsDic = {}
