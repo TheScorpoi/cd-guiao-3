@@ -8,7 +8,7 @@ import socket
 import selectors
 import json
 import pickle
-import xml.etree.ElementTree as XM
+import xml.etree.ElementTree as element_tree
 import xml
 
 
@@ -108,7 +108,7 @@ class XMLQueue(Queue):
     
     def decode(self,data):
         init=data.decode('utf-8')
-        init=XM.fromstring(init)
+        init=element_tree.fromstring(init)
         init2=init.attrib
         op=init2['method']
         topic=init2['topic']

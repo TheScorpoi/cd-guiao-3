@@ -1,13 +1,12 @@
 """Message Broker"""
 from typing import Dict, List, Any, Tuple
-from typing import Dict, List, Any, Tuple
 import enum
 import socket
 import selectors
 import json
 import pickle
 import xml
-import xml.etree.ElementTree as XM
+import xml.etree.ElementTree as element_tree
 
 class Serializer(enum.Enum):
     """Possible message serializers."""
@@ -28,21 +27,20 @@ class Broker:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((self._host,self._port))
         self.socket.listen(100)
-        self.sel = selectors.DefaultSelector()
-        self.sel.register(self.socket, selectors.EVENT_READ, self.accept)
-        #!init dictonaries fazer comentarios sobre key/value em cada um
+        self.selector = selectors.DefaultSelector()
+        self.selector.register(self.socket, selectors.EVENT_READ, self.accept)
         
-        self.serializer_of_userDic = {}
-        self.topics_by_userDic = {}  
-        self.messages_of_topicsDic = {}
-        self.subtopics_of_topicDic = {}
+        self.serializer_of_userDic = {} #key: conn  / value: Serializer  
+        self.topics_by_userDic = {}     #key: topic / value: address and format
+        self.messages_of_topicsDic = {} #key: topic / value: value
+        self.subtopics_of_topicDic = {} #key: topic / value: subtopic
         
     def accept(self, sock, mask):
         """ """
         conn, addr = sock.accept()                                  
         print('accepted', conn, 'from', addr)
         conn.setblocking(False)
-        self.sel.register(conn, selectors.EVENT_READ, self.read)
+        self.selector.register(conn, selectors.EVENT_READ, self.read)
 
         header_aux = conn.recv(3)                        
         header = int.from_bytes(header_aux, "little")  
@@ -57,7 +55,7 @@ class Broker:
                 self.serializer_of_userDic[conn] = Serializer.XML
         else:    
             print('closing', conn)                          
-            self.sel.unregister(conn)                       
+            self.selector.unregister(conn)                       
             conn.close() 
             
 
@@ -85,7 +83,7 @@ class Broker:
                 elif method == 'CANCEL':
                     self.unsubscribe(topic,conn)
                 elif method == 'LIST':
-                    self.send_message(conn,'LIST_TOPICS_REP',topic, self.list_topics())
+                    self.send_message(conn, 'LIST_TOPICS_REP', topic, self.list_topics())
             else:
                 print('closing', conn)
                 for i in self.topics_by_userDic.keys():
@@ -95,7 +93,7 @@ class Broker:
                             self.topics_by_userDic[i].remove(f)
                             break
 
-                self.sel.unregister(conn)
+                self.selector.unregister(conn)
                 conn.close()
 
     def list_topics(self) -> List[str]:
@@ -144,9 +142,9 @@ class Broker:
     def subscribe(self, topic: str, address: socket.socket, _format: Serializer = None):
         """Subscribe to topic by client in address."""
         if topic not in self.topics_by_userDic.keys():
-            self.topics_by_userDic[topic] = [((address, _format))]
+            self.topics_by_userDic[topic] = [(address, _format)]
         else:
-            self.topics_by_userDic[topic].append((address, _format))
+            self.topics_by_userDic[topic].append((address, _format  ))
    
         if topic not in self.subtopics_of_topicDic.keys():
             for topico in self.subtopics_of_topicDic.keys():
@@ -180,10 +178,10 @@ class Broker:
         conn.send(header + message)
 
     def decodeJSON(self, data):
-        data=data.decode('utf-8')
-        msg=json.loads(data)
-        op=msg['method']
-        topic=msg['topic']
+        data = data.decode('utf-8')
+        msg = json.loads(data)
+        op = msg['method']
+        topic = msg['topic']
         msg=msg['msg']
         return op,topic,msg 
 
@@ -201,7 +199,7 @@ class Broker:
 
     def decodeXML(self,data):
         init=data.decode('utf-8')
-        init=XM.fromstring(init)
+        init=element_tree.fromstring(init)
         init2=init.attrib
         op=init2['method']
         topic=init2['topic']
@@ -223,7 +221,7 @@ class Broker:
     def run(self):
         """Run until canceled."""
         while not self.canceled:
-            events = self.sel.select()
+            events = self.selectorect()
             for key, mask in events:
                 callback = key.data
                 callback(key.fileobj, mask)
