@@ -29,7 +29,7 @@ class Broker:
         self.socket.listen(100)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.socket, selectors.EVENT_READ, self.accept)
-        
+        #init dicionaries
         self.serializer_of_userDic = {} #key: conn  / value: Serializer  
         self.topics_by_userDic = {}     #key: topic / value: address and format
         self.messages_of_topicsDic = {} #key: topic / value: value
@@ -64,7 +64,7 @@ class Broker:
         data = conn.recv(header)
 
         if data:
-            if conn in self.serializer_of_userDic.keys():
+            if conn in self.serializer_of_userDic:
                 if self.serializer_of_userDic[conn] == Serializer.JSON:
                     method, topic, message = self.decodeJSON(data)
                 elif self.serializer_of_userDic[conn] == Serializer.XML:
@@ -77,34 +77,27 @@ class Broker:
                 elif method == 'SUBSCRIBE':
                     self.subscribe(topic,conn, self.serializer_of_userDic[conn])
                     if topic in self.messages_of_topicsDic:
-                        self.send_message(conn, 'LAST_MESSAGE', topic, self.messages_of_topicsDic[topic])
-                elif method == 'CANCEL':
-                    self.unsubscribe(topic,conn)
+                        self.send_message(conn, 'LAST_POST', topic, self.messages_of_topicsDic[topic])
                 elif method == 'LIST':
-                    self.send_message(conn, 'LIST_TOPICS_REP', topic, self.list_topics())
+                    self.send_message(conn, 'LIST', topic, self.list_topics())
+                elif method == 'CANCEL':
+                    self.unsubscribe(topic, conn)
             else:
                 print('closing', conn)
-                for i in self.topics_by_userDic.keys():
-                    list_users = self.topics_by_userDic[i]
-                    for f in list_users:
-                        if f[0] == conn:
-                            self.topics_by_userDic[i].remove(f)
-                            break
-
+                self.unsubscribe(topic, conn)
                 self.selector.unregister(conn)
                 conn.close()
 
     def list_topics(self) -> List[str]:
         """Returns a list of strings containing all topics."""
         list_topics = []
-        for i in self.subtopics_of_topicDic.keys():
+        for i in self.subtopics_of_topicDic:
             list_topics.append(i)
         return list_topics
 
-
     def get_topic(self, topic):
         """Returns the currently stored value in topic."""
-        if topic in self.messages_of_topicsDic.keys():
+        if topic in self.messages_of_topicsDic:
             return self.messages_of_topicsDic[topic]
         else:
             return None
@@ -113,50 +106,48 @@ class Broker:
         """Store in topic the value."""
         self.messages_of_topicsDic[topic] = value
 
-        if topic not in self.subtopics_of_topicDic.keys():
-            for topico in self.subtopics_of_topicDic.keys():
-                if topico in topic:
-                    self.subtopics_of_topicDic[topico].append(topic)
+        if topic not in self.subtopics_of_topicDic:
+            for sub_topic in self.subtopics_of_topicDic:
+                if sub_topic in topic:
+                    self.subtopics_of_topicDic[sub_topic].append(topic)
 
             self.subtopics_of_topicDic[topic] = []
-            for topico in self.subtopics_of_topicDic.keys():
-                if topic in topico:
-                    self.subtopics_of_topicDic[topic].append(topico)
+            for sub_topic in self.subtopics_of_topicDic:
+                if topic in sub_topic:
+                    self.subtopics_of_topicDic[topic].append(sub_topic)
 
         for i in self.subtopics_of_topicDic[topic]:
-            if i in self.topics_by_userDic.keys():
-                if self.topics_by_userDic[i] != []: #
-                    address = self.topics_by_userDic[i][0][0]
-                    self.send_message(address, 'MESSAGE', topic, value)
+            if i in self.topics_by_userDic and self.topics_by_userDic[i] != []:
+                address = self.topics_by_userDic[i][0][0]
+                self.send_message(address, 'MESSAGE', topic, value)
 
 
     def list_subscriptions(self, topic: str) -> List[socket.socket]:
         """Provide list of subscribers to a given topic."""
-        for i in self.topics_by_userDic.keys():
-            print(self.topics_by_userDic[i])
+        for i in self.topics_by_userDic:
             if i==topic:
                 return self.topics_by_userDic[i]
 
     def subscribe(self, topic: str, address: socket.socket, _format: Serializer = None):
         """Subscribe to topic by client in address."""
-        if topic not in self.topics_by_userDic.keys():
+        if topic not in self.topics_by_userDic:
             self.topics_by_userDic[topic] = [(address, _format)]
         else:
             self.topics_by_userDic[topic].append((address, _format  ))
    
-        if topic not in self.subtopics_of_topicDic.keys():
-            for topico in self.subtopics_of_topicDic.keys():
-                if topico in topic:
-                    self.subtopics_of_topicDic[topico].append(topic)
+        if topic not in self.subtopics_of_topicDic:
+            for sub_topic in self.subtopics_of_topicDic:
+                if sub_topic in topic:
+                    self.subtopics_of_topicDic[sub_topic].append(topic)
 
             self.subtopics_of_topicDic[topic] = []
-            for topico in self.subtopics_of_topicDic.keys():
-                if topic in topico:
-                    self.subtopics_of_topicDic[topic].append(topico)
+            for sub_topic in self.subtopics_of_topicDic:
+                if topic in sub_topic:
+                    self.subtopics_of_topicDic[topic].append(sub_topic)
 
     def unsubscribe(self, topic, address):
         """Unsubscribe to topic by client in address."""
-        if topic in self.topics_by_userDic.keys():
+        if topic in self.topics_by_userDic:
             list_users = self.topics_by_userDic[topic]
             for i in list_users:
                 if i[0] == address:
