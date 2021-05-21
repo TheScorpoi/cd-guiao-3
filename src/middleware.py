@@ -76,65 +76,60 @@ class Queue:
 
 class JSONQueue(Queue):
     """Queue implementation with JSON based serialization."""
-    
-    def __init__(self, topic, _type=MiddlewareType.CONSUMER):
+    def __init__(self, topic, _type=MiddlewareType.CONSUMER):  
         super().__init__(topic, _type)
-    
-    @classmethod
-    def encode(cls, message, topic, method):
-        protocol_JSON = {"method": method, 'topic': topic, "message": message}
-        protocol_JSON = json.dumps(protocol_JSON)
-        protocol_JSON = protocol_JSON.encode('utf-8')
-        return protocol_JSON
         
-    @classmethod
-    def decode(cls, data):
-        data = data.decode('utf-8')
-        data = json.loads(data)
-        method = data['method']
-        topic = data['topic']
-        message = data['message']
-        return method, topic, message
+    def decode(self, data):
+        data=data.decode('utf-8')
+        msg=json.loads(data)
+        op=msg['method']
+        topic=msg['topic']
+        msg=msg['msg']
+        return op,topic,msg  
     
+    def encode(self, method, topic,msg):
+        init={'method':method,'topic':topic,'msg':msg}
+        init=json.dumps(init)
+        init=init.encode('utf-8')
+        return init   
+
+
+
 class XMLQueue(Queue):
     """Queue implementation with XML based serialization."""
-    
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         super().__init__(topic, _type)
         
-    @classmethod
-    def encode(cls, message, topic, method):
-        protocol_XML = {"method": method, 'topic': topic, "message": message}
-        protocol_XML = ('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><message>%(message)s</message></data>' % protocol_XML)
-        protocol_XML = protocol_XML.encode('utf-8')
-        return protocol_XML
-        
-    @classmethod
-    def decode(cls, data):
-        data = data.decode('utf-8')
-        data = element_tree.fromstring(data)
-        message_xml = data.attrib
-        method = message_xml['method']
-        topic = message_xml['topic']
-        message = message_xml.find('message').txt
-        return method, topic, message
+    def encode(self,method,topic,msg):
+        init={'method':method,'topic':topic,'msg':msg}
+        init=('<?xml version="1.0"?><data method="%(method)s" topic="%(topic)s"><msg>%(msg)s</msg></data>' % init)
+        init=init.encode('utf-8')
+        return init
+    
+    def decode(self,data):
+        init=data.decode('utf-8')
+        init=XM.fromstring(init)
+        init2=init.attrib
+        op=init2['method']
+        topic=init2['topic']
+        msg=init.find('msg').text
+        return op,topic,msg
+
 
 class PickleQueue(Queue):
     """Queue implementation with Pickle based serialization."""
-    
     def __init__(self, topic, _type=MiddlewareType.CONSUMER):
         super().__init__(topic, _type)
+        
+    def encode(self,method, topic,msg):
+        init={'method':method,'topic':topic,'msg':msg}
+        init=pickle.dumps(init)
+        return init
     
-    @classmethod
-    def encode(cls, message, topic, method):
-        protocol_PICKLE = {"method": method, 'topic': topic, "message": message}
-        protocol_PICKLE = pickle.dumps(protocol_PICKLE)
-        return protocol_PICKLE
+    def decode(self,data):
+        msg=pickle.loads(data)
+        op=msg['method']
+        topic=msg['topic']
+        msg=msg['msg']
+        return op,topic,msg
 
-    @classmethod
-    def decode(cls, data):
-        self.data = pickle.loads(data)
-        method = data['method']
-        topic = data['topic']
-        message = data['message']
-        return method, topic, message
